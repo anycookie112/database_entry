@@ -116,6 +116,11 @@ class main_menu(QWidget):
       self.b5.clicked.connect(self.open_rework_window)
       layout.addWidget(self.b5)
 
+      self.b6 = QPushButton("New Parts")
+      self.b6.setCheckable(True)
+      self.b6.clicked.connect(self.open_new_part_window)
+      layout.addWidget(self.b6)
+
       self.setLayout(layout)
 
       self.spray_print_window = None
@@ -124,7 +129,16 @@ class main_menu(QWidget):
       self.to_store_window = None
       self.rework_window = None
       self.first_phase_print_window = None
+      self.new_part_window = None
    
+   def open_new_part_window(self):
+        # Check if the spray_print window is already open; if not, create it
+        if self.new_part_window is None:
+            self.new_part_window = new_part_window(self.part_codes)
+        
+        # Show the spray_print window
+        self.new_part_window.show()
+
    def open_spray_print_window(self):
         # Check if the spray_print window is already open; if not, create it
         if self.spray_print_window is None:
@@ -172,6 +186,88 @@ class main_menu(QWidget):
         
         # Show the spray_print window
         self.rework_window.show()
+
+class new_part_window(QWidget):
+    def __init__(self, part_codes, parent = None):
+        super(new_part_window, self).__init__(parent)
+
+        layout = QVBoxLayout()
+        # Part name
+        self.e1 = QLineEdit()
+        self.e1.setMaxLength(30)
+        self.e1.setAlignment(Qt.AlignRight)
+
+        # Part code
+        self.e2 = QLineEdit()
+        self.e2.setMaxLength(30)
+        self.e2.setAlignment(Qt.AlignRight)
+        
+        # Customer
+        self.e3 = QLineEdit()
+        self.e3.setMaxLength(30)
+        self.e3.setAlignment(Qt.AlignRight)
+
+        self.flo = QFormLayout()
+        self.flo.addRow("Part Name", self.e1)
+        self.flo.addRow("Part Code", self.e2)
+        self.flo.addRow("Customer", self.e3)
+        layout.addLayout(self.flo)
+
+        self.b1 = QPushButton("Submit")
+        self.b1.setCheckable(True)
+        self.b1.clicked.connect(self.confirmation)
+        layout.addWidget(self.b1)
+
+        self.setLayout(layout)
+
+    def confirmation(self):
+       
+       part_name = self.e1.text().upper()
+       part_code = self.e2.text().upper()
+       customer  = self.e3.text().upper()
+
+       msg = QMessageBox()
+       msg.setIcon(QMessageBox.Information)
+       msg.setText("Please confirm entered values")
+       msg.setInformativeText(f"""
+        Part Name: {part_name}
+        Part Code: {part_code}
+        Customer: {customer}
+         """)
+       
+       msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+       msg.buttonClicked.connect(self.submit_new_part)
+       retval = msg.exec_()
+
+    def submit_new_part(self):
+        part_name = self.e1.text().upper()
+        part_code = self.e2.text().upper()
+        customer  = self.e3.text().upper()
+
+        try:
+         # Start a transaction
+         my_cursor.execute("START TRANSACTION;")
+
+         sql = """
+               INSERT INTO main_parts 
+               (part_name, part_code, customer) 
+               VALUES (%s, %s, %s)
+         """
+         values = (part_name, part_code, customer)
+         my_cursor.execute(sql, values)
+
+         mydb.commit()  # Commit the changes to the database
+         print("Record inserted successfully.")
+
+         self.e1.clear()  # Clear the total output QLineEdit
+         self.e2.clear()  # Clear the total reject QLineEdit
+         print("Inputs cleared after submission.")
+
+        except Exception as e:
+            # Rollback the transaction on error
+            my_cursor.execute("ROLLBACK;")
+            print(f"Error: {e}")
+    
 
 
 class spray_print_window(QWidget):
@@ -224,10 +320,6 @@ class new_batch_spray_entry_window(QWidget):
       self.part_code_entry = ExtendedComboBox()
       self.part_code_entry.addItems(part_codes)
       layout.addWidget(self.part_code_entry)
-      # Product code
-    #   self.part_code_entry = QComboBox()
-    #   self.part_code_entry.addItems(part_codes)
-    #   layout.addWidget(self.part_code_entry)
 
       #Output amount
       self.e1 = QLineEdit()
