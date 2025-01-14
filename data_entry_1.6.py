@@ -14,7 +14,7 @@ mydb = mysql.connector.connect(
     host="localhost",
     user="root",
     password="UL1131",
-    database="production_dupe"
+    database="test"
 )
 
 # mydb = mysql.connector.connect(
@@ -324,13 +324,13 @@ class new_batch_spray_entry_window(QWidget):
       #Output amount
       self.e1 = QLineEdit()
       self.e1.setValidator(QIntValidator())
-      self.e1.setMaxLength(4)
+      self.e1.setMaxLength(5)
       self.e1.setAlignment(Qt.AlignRight)
 
       #Reject amount
       self.e2 = QLineEdit()
       self.e2.setValidator(QIntValidator())
-      self.e2.setMaxLength(2)
+      self.e2.setMaxLength(3)
       self.e1.setAlignment(Qt.AlignRight)
 
       self.flo = QFormLayout()
@@ -492,7 +492,7 @@ class new_print_batch_entry_window(QWidget):
         #Output amount
         self.e1 = QLineEdit()
         self.e1.setValidator(QIntValidator())
-        self.e1.setMaxLength(4)
+        self.e1.setMaxLength(5)
         self.e1.setAlignment(Qt.AlignRight)
 
         self.e2 = QLineEdit()
@@ -526,11 +526,9 @@ class new_print_batch_entry_window(QWidget):
         #test
 
         self.reject_details = [
-            "dust_mark", "under_spray", "scratches", "dented", "bubble", 
-            "white_dot", "dust_paint", "sink_mark", "black_dot", "smear", 
-            "dirty", "bulging", "short_mould", "weldline", "incompleted", 
-            "colour_out", "gate_high", "over_stamp", "ink_mark", "banding", 
-            "shining", "overtrim", "dprinting", "dust_fibre", "thiner_mark"
+        "dust_marks", "dust_fibre", "black_dot", "dust_paint", "thiner_mark","incompleted", "banding", "ink_mark","under_spray",
+        "shining", "position_out", "smear",   "adjustment",   "scratches", "dirty", "dprinting",  "white_dot", "dented", "bubble",  
+        "sink_mark", "bulging", "short_mould", "weldline",  "colour_out", "gate_high", "over_stamp", "overtrim"
         ]
 
         self.spin_boxes = {}
@@ -680,12 +678,12 @@ class new_print_batch_entry_window(QWidget):
 
          # Insert into `print_defect_list` using `last_print_inspection_id`
          sql = """
-            INSERT INTO print_defect_list (print_inspection_id, dust_mark, under_spray, scratches, dented, bubble, 
-            white_dot, dust_paint, sink_mark, black_dot, smear, dirty, bulging, short_mould, 
-            weldline, incompleted, colour_out, gate_high, over_stamp, ink_mark, banding, 
-            shining, overtrim, dprinting, dust_fibre, thiner_mark)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-         """
+            INSERT INTO print_defect_list
+            (print_inspection_id, dust_mark, dust_fibre, black_dot, dust_paint, thiner_mark, incompleted, banding, ink_mark, under_spray,
+            shining, position_out, smear,   adjustment,   scratches, dirty, dprinting,  white_dot, dented, bubble,  
+            sink_mark, bulging, short_mould, weldline,  colour_out, gate_high, over_stamp, overtrim)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """
          values = (last_print_inspection_id,) + tuple(defect_data.get(defect, 0) for defect in self.reject_details) 
          my_cursor.execute(sql, values)
 
@@ -831,15 +829,22 @@ class open_take_from_spray_entry(QWidget):
         vlayout.addWidget(self.b1)
 
         # Defect details with spin boxes
-        self.reject_details = {
-            "dust_marks", "under_spray", "scratches", "dented", "bubble", "dust_paint", "sink_mark", "black_dot", "white_dot",
-            "smear", "dirty", "bulging", "short_mould", "weldline", "incompleted", "colour_out", "gate_high", "over_stamp",
-            "ink_mark", "banding", "shining", "overtrim", "dprinting", "dust_fibre", "thiner_mark", "position_out", "adjustment"
-        }
-        
+        # self.reject_details = {
+        #     "dust_marks", "under_spray", "scratches", "dented", "bubble", "dust_paint", "sink_mark", "black_dot", "white_dot",
+        #     "smear", "dirty", "bulging", "short_mould", "weldline", "incompleted", "colour_out", "gate_high", "over_stamp",
+        #     "ink_mark", "banding", "shining", "overtrim", "dprinting", "dust_fibre", "thiner_mark", "position_out", "adjustment"
+        # }
+
+        self.reject_details = [
+            "dust_marks", "dust_fibre", "black_dot", "dust_paint", "thiner_mark", "incompleted", 
+            "banding", "ink_mark", "under_spray", "shining", "position_out", "smear", "adjustment", 
+            "scratches", "dirty", "dprinting", "white_dot", "dented", "bubble", "sink_mark", 
+            "bulging", "short_mould", "weldline", "colour_out", "gate_high", "over_stamp", "overtrim"
+        ]
+
         self.spin_boxes = {}
 
-        # Populate grid with labels and spin boxes
+         # Populate grid with labels and spin boxes
         for i, detail in enumerate(self.reject_details):
             label = QLabel(detail.replace('_', ' ').capitalize())
             spin_box = QSpinBox()
@@ -1023,13 +1028,12 @@ class open_take_from_spray_entry(QWidget):
 
          # Insert defects into `print_defect_list` using the correct `print_inspection_id`
          sql_defect_list = """
-         INSERT INTO print_defect_list
-         (print_inspection_id, dust_mark, under_spray, scratches, dented, bubble, dust_paint, 
-         sink_mark, black_dot, white_dot, smear, dirty, bulging, short_mould, 
-         weldline, incompleted, colour_out, gate_high, over_stamp, ink_mark, banding, shining,
-         overtrim, dprinting, dust_fibre, thiner_mark, position_out, adjustment)
-         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-         """
+            INSERT INTO print_defect_list
+            (print_inspection_id, dust_mark, dust_fibre, black_dot, dust_paint, thiner_mark, incompleted, banding, ink_mark, under_spray,
+            shining, position_out, smear,   adjustment,   scratches, dirty, dprinting,  white_dot, dented, bubble,  
+            sink_mark, bulging, short_mould, weldline,  colour_out, gate_high, over_stamp, overtrim)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """
 
          values = (last_print_inspection_id,) + tuple(defect_data.get(defect, 0) for defect in self.reject_details) 
          my_cursor.execute(sql_defect_list, values)
@@ -1152,7 +1156,7 @@ class open_first_phase_checking_entry(QWidget):
          
          self.e1 = QLineEdit()
          self.e1.setValidator(QIntValidator())
-         self.e1.setMaxLength(4)
+         self.e1.setMaxLength(5)
          self.e1.setAlignment(Qt.AlignRight)
 
          self.e2 = QLineEdit()
@@ -1178,11 +1182,11 @@ class open_first_phase_checking_entry(QWidget):
          vlayout.addWidget(self.b1)
 
          # Defect details with spin boxes
-         self.reject_details = {
+         self.reject_details = [
                 "dust_marks","fibre_marks","paint_marks","white_marks","sink_marks","texture_marks","water_marks",
                 "flow_marks","black_dot","white_dot","over_paint","under_spray","colour_out","masking_ng","flying_paint","weldline",
                 "banding","short_mould","sliver_streak","dented","scratches","dirty"
-            }
+         ]
          self.spin_boxes = {}
 
          # Populate grid with labels and spin boxes
@@ -1195,6 +1199,7 @@ class open_first_phase_checking_entry(QWidget):
                grid.addWidget(label, i // 2, (i % 2) * 2)
                grid.addWidget(spin_box, i // 2, (i % 2) * 2 + 1)
 
+        
          hlayout.addLayout(vlayout)
          hlayout.addLayout(grid)
          self.setLayout(hlayout)
@@ -1410,7 +1415,7 @@ class open_first_phase_checking_print_entry(QWidget):
          
          self.e1 = QLineEdit()
          self.e1.setValidator(QIntValidator())
-         self.e1.setMaxLength(4)
+         self.e1.setMaxLength(5)
          self.e1.setAlignment(Qt.AlignRight)
 
          self.e2 = QLineEdit()
@@ -1436,22 +1441,25 @@ class open_first_phase_checking_print_entry(QWidget):
          vlayout.addWidget(self.b1)
 
          # Defect details with spin boxes
-         self.reject_details = {
-                "dust_marks", "under_spray", "scratches", "dented", "bubble", "dust_paint", "sink_mark", "black_dot", "white_dot",
-            "smear", "dirty", "bulging", "short_mould", "weldline", "incompleted", "colour_out", "gate_high", "over_stamp",
-            "ink_mark", "banding", "shining", "overtrim", "dprinting", "dust_fibre", "thiner_mark", "position_out", "adjustment"
-            }
+         self.reject_details = [
+    "dust_marks", "dust_fibre", "black_dot", "dust_paint", "thiner_mark", "incompleted", 
+    "banding", "ink_mark", "under_spray", "shining", "position_out", "smear", "adjustment", 
+    "scratches", "dirty", "dprinting", "white_dot", "dented", "bubble", "sink_mark", 
+    "bulging", "short_mould", "weldline", "colour_out", "gate_high", "over_stamp", "overtrim"
+        ]
+
          self.spin_boxes = {}
 
          # Populate grid with labels and spin boxes
          for i, detail in enumerate(self.reject_details):
-               label = QLabel(detail.replace('_', ' ').capitalize())
-               spin_box = QSpinBox()
-               spin_box.setRange(0, 100)  # Set range as needed
-               self.spin_boxes[detail] = spin_box  # Store reference to each spin box
+            label = QLabel(detail.replace('_', ' ').capitalize())
+            spin_box = QSpinBox()
+            spin_box.setRange(0, 100)  # Set range as needed
+            self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
-               grid.addWidget(label, i // 2, (i % 2) * 2)
-               grid.addWidget(spin_box, i // 2, (i % 2) * 2 + 1)
+            grid.addWidget(label, i // 2, (i % 2) * 2)
+            grid.addWidget(spin_box, i // 2, (i % 2) * 2 + 1)
+
 
          hlayout.addLayout(vlayout)
          hlayout.addLayout(grid)
@@ -1548,10 +1556,9 @@ class open_first_phase_checking_print_entry(QWidget):
             # Insert defects into `print_defect_list` using the correct `spray_inspection_id`
             sql_defect_list = """
             INSERT INTO print_defect_list
-            (print_inspection_id, dust_mark, under_spray, scratches ,dented ,bubble ,dust_paint, 
-            sink_mark ,black_dot ,white_dot ,smear ,dirty ,bulging ,short_mould, 
-            weldline ,incompleted ,colour_out ,gate_high ,over_stamp ,ink_mark ,banding, shining,
-            overtrim ,dprinting ,dust_fibre ,thiner_mark,position_out, adjustment)
+            (print_inspection_id, dust_mark, dust_fibre, black_dot, dust_paint, thiner_mark, incompleted, banding, ink_mark, under_spray,
+            shining, position_out, smear,   adjustment,   scratches, dirty, dprinting,  white_dot, dented, bubble,  
+            sink_mark, bulging, short_mould, weldline,  colour_out, gate_high, over_stamp, overtrim)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """
             values = (last_print_inspection_id,) + tuple(defect_data.get(defect, 0) for defect in self.reject_details)
@@ -1700,7 +1707,7 @@ class open_final_phase_checking_spray_entry(QWidget):
          
          self.e1 = QLineEdit()
          self.e1.setValidator(QIntValidator())
-         self.e1.setMaxLength(4)
+         self.e1.setMaxLength(5)
          self.e1.setAlignment(Qt.AlignRight)
 
          self.e2 = QLineEdit()
@@ -1726,11 +1733,11 @@ class open_final_phase_checking_spray_entry(QWidget):
          vlayout.addWidget(self.b1)
 
          # Defect details with spin boxes
-         self.reject_details = {
+         self.reject_details = [
                 "dust_marks","fibre_marks","paint_marks","white_marks","sink_marks","texture_marks","water_marks",
                 "flow_marks","black_dot","white_dot","over_paint","under_spray","colour_out","masking_ng","flying_paint","weldline",
                 "banding","short_mould","sliver_streak","dented","scratches","dirty"
-            }
+         ]
          self.spin_boxes = {}
 
          # Populate grid with labels and spin boxes
@@ -1950,7 +1957,7 @@ class open_final_phase_checking_entry(QWidget):
         
         self.e1 = QLineEdit()
         self.e1.setValidator(QIntValidator())
-        self.e1.setMaxLength(4)
+        self.e1.setMaxLength(5)
         self.e1.setAlignment(Qt.AlignRight)
 
         self.e2 = QLineEdit()
@@ -1973,19 +1980,21 @@ class open_final_phase_checking_entry(QWidget):
         self.b1.clicked.connect(self.confirmation)
         vlayout.addWidget(self.b1)
 
-        self.reject_details = {
-            "dust_marks", "under_spray", "scratches", "dented", "bubble", "dust_paint", "sink_mark", "black_dot", "white_dot",
-            "smear", "dirty", "bulging", "short_mould", "weldline", "incompleted", "colour_out", "gate_high", "over_stamp",
-            "ink_mark", "banding", "shining", "overtrim", "dprinting", "dust_fibre", "thiner_mark", "position_out", "adjustment"
-        }
-        
+        self.reject_details = [
+        "dust_marks", "dust_fibre", "black_dot", "dust_paint", "thiner_mark", "incompleted", 
+        "banding", "ink_mark", "under_spray", "shining", "position_out", "smear", "adjustment", 
+        "scratches", "dirty", "dprinting", "white_dot", "dented", "bubble", "sink_mark", 
+        "bulging", "short_mould", "weldline", "colour_out", "gate_high", "over_stamp", "overtrim"
+    ]
+
         self.spin_boxes = {}
 
+         # Populate grid with labels and spin boxes
         for i, detail in enumerate(self.reject_details):
             label = QLabel(detail.replace('_', ' ').capitalize())
             spin_box = QSpinBox()
-            spin_box.setRange(0, 100)
-            self.spin_boxes[detail] = spin_box
+            spin_box.setRange(0, 100)  # Set range as needed
+            self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
             grid.addWidget(label, i // 2, (i % 2) * 2)
             grid.addWidget(spin_box, i // 2, (i % 2) * 2 + 1)
@@ -2089,10 +2098,9 @@ class open_final_phase_checking_entry(QWidget):
             # Insert defects into `print_defect_list` using the correct `print_inspection_id`
             sql_defect_list = """
             INSERT INTO print_defect_list
-            (print_inspection_id, dust_mark, under_spray, scratches ,dented ,bubble ,dust_paint, 
-            sink_mark ,black_dot ,white_dot ,smear ,dirty ,bulging ,short_mould, 
-            weldline ,incompleted ,colour_out ,gate_high ,over_stamp ,ink_mark ,banding, shining,
-            overtrim ,dprinting ,dust_fibre ,thiner_mark,position_out, adjustment)
+            (print_inspection_id, dust_mark, dust_fibre, black_dot, dust_paint, thiner_mark, incompleted, banding, ink_mark, under_spray,
+            shining, position_out, smear,   adjustment,   scratches, dirty, dprinting,  white_dot, dented, bubble,  
+            sink_mark, bulging, short_mould, weldline,  colour_out, gate_high, over_stamp, overtrim)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """
 
@@ -2295,7 +2303,7 @@ class open_to_store_spray_entry(QWidget):
         
         self.e1 = QLineEdit()
         self.e1.setValidator(QIntValidator())
-        self.e1.setMaxLength(4)
+        self.e1.setMaxLength(5)
         self.e1.setAlignment(Qt.AlignRight)
 
         self.flo = QFormLayout()
@@ -2576,7 +2584,7 @@ class open_to_store_print_entry(QWidget):
         
         self.e1 = QLineEdit()
         self.e1.setValidator(QIntValidator())
-        self.e1.setMaxLength(4)
+        self.e1.setMaxLength(5)
         self.e1.setAlignment(Qt.AlignRight)
 
         self.flo = QFormLayout()
@@ -2826,7 +2834,7 @@ class open_rechecking_entry(QWidget):
          
          self.e1 = QLineEdit()
          self.e1.setValidator(QIntValidator())
-         self.e1.setMaxLength(4)
+         self.e1.setMaxLength(5)
          self.e1.setAlignment(Qt.AlignRight)
 
          self.e2 = QLineEdit()
@@ -2852,11 +2860,11 @@ class open_rechecking_entry(QWidget):
          vlayout.addWidget(self.b1)
 
          # Defect details with spin boxes
-         self.reject_details = {
+         self.reject_details = [
                 "dust_marks","fibre_marks","paint_marks","white_marks","sink_marks","texture_marks","water_marks",
                 "flow_marks","black_dot","white_dot","over_paint","under_spray","colour_out","masking_ng","flying_paint","weldline",
                 "banding","short_mould","sliver_streak","dented","scratches","dirty"
-            }
+         ]
          self.spin_boxes = {}
 
          # Populate grid with labels and spin boxes
