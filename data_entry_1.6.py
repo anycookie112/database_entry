@@ -121,6 +121,11 @@ class main_menu(QWidget):
       self.b6.clicked.connect(self.open_new_part_window)
       layout.addWidget(self.b6)
 
+      self.b7 = QPushButton("Delete/Amend")
+      self.b7.setCheckable(True)
+    #   self.b7.clicked.connect(self.open_new_part_window)
+      layout.addWidget(self.b7)
+
       self.setLayout(layout)
 
       self.spray_print_window = None
@@ -130,6 +135,7 @@ class main_menu(QWidget):
       self.rework_window = None
       self.first_phase_print_window = None
       self.new_part_window = None
+      self.amend = None
    
    def open_new_part_window(self):
         # Check if the spray_print window is already open; if not, create it
@@ -158,7 +164,7 @@ class main_menu(QWidget):
    def open_first_phase_print_checking_window(self):
         # Check if the spray_print window is already open; if not, create it
         if self.first_phase_print_window is None:
-            self.first_phase_print_window = first_phase_checking_print()
+            self.first_phase_print_window = first_phase_checking_print(self.parts_variant)
         
         # Show the spray_print window
         self.first_phase_print_window.show()
@@ -186,6 +192,18 @@ class main_menu(QWidget):
         
         # Show the spray_print window
         self.rework_window.show()
+
+   def open_amend_window(self):
+        # Check if the spray_print window is already open; if not, create it
+        if self.amend is None:
+            self.amend = amend()
+        
+        # Show the spray_print window
+        self.amend.show()
+        
+class amend(QWidget):
+    def __init__(self, part_codes, parent = None):
+        super(amend, self).__init__(parent)
 
 class new_part_window(QWidget):
     def __init__(self, part_codes, parent = None):
@@ -537,7 +555,7 @@ class new_print_batch_entry_window(QWidget):
         for i, detail in enumerate(self.reject_details):
             label = QLabel(detail.replace('_', ' ').capitalize())
             spin_box = QSpinBox()
-            spin_box.setRange(0, 100)  # Set range as needed
+            spin_box.setRange(0, 5000)  # Set range as needed
             self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
             grid.addWidget(label, i // 2, (i % 2) * 2)
@@ -780,6 +798,20 @@ class open_take_from_spray_entry(QWidget):
     def __init__(self, spray_id, part_code, parent=None):
         super(open_take_from_spray_entry, self).__init__(parent)
 
+        # my_cursor.execute("SELECT part_name, part_code FROM main_parts")
+        # all_parts_info = my_cursor.fetchall()
+        # parts_tuple = namedtuple("parts_info", ["part_name", "part_code"])
+        # #part will become part in all_parts, then inputs into parts_info for namedtuple * to unzip the tuple that is pass through 
+        # parts = [parts_tuple(*part) for part in all_parts_info]
+        # self.part_codes = [part.part_code for part in parts]  
+
+        my_cursor.execute("SELECT part_name, part_code FROM variant_parts")
+        all_parts_variant_info = my_cursor.fetchall()
+        parts_tuple_variant = namedtuple("parts_info", ["part_name", "part_code"])
+        # Create a list of named tuples for the parts
+        parts_variant = [parts_tuple_variant(*part) for part in all_parts_variant_info]
+        self.parts_variant = [part.part_code for part in parts_variant]  # Fix here
+
         self.spray_id = spray_id
         self.part_code = part_code
 
@@ -790,6 +822,10 @@ class open_take_from_spray_entry(QWidget):
         # Output amount
         self.selected_part_label = QLabel(f"Selected Part Code: {part_code}")
         vlayout.addWidget(self.selected_part_label)
+
+        self.part_code_entry = ExtendedComboBox()
+        self.part_code_entry.addItems(self.parts_variant)  # Use corrected attribute
+        vlayout.addWidget(self.part_code_entry)
         
         self.e1 = QLineEdit()
         self.e1.setValidator(QIntValidator())
@@ -848,7 +884,7 @@ class open_take_from_spray_entry(QWidget):
         for i, detail in enumerate(self.reject_details):
             label = QLabel(detail.replace('_', ' ').capitalize())
             spin_box = QSpinBox()
-            spin_box.setRange(0, 100)  # Set range as needed
+            spin_box.setRange(0, 5000)  # Set range as needed
             self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
             grid.addWidget(label, i // 2, (i % 2) * 2)
@@ -868,6 +904,7 @@ class open_take_from_spray_entry(QWidget):
         print_output_amount = self.e1.text()
         date_print = self.calender.selectedDate().toString("yyyy-MM-dd")
         checker = self.e2.text().upper()
+        variant_part = self.part_code_entry.currentText()
 
         # Collect non-zero rejection details
         non_zero_defects = {detail: spin_box.value() for detail, spin_box in self.spin_boxes.items() if spin_box.value() > 0}
@@ -880,7 +917,7 @@ class open_take_from_spray_entry(QWidget):
         msg.setIcon(QMessageBox.Information)
         msg.setText("Please confirm entered values")
         msg.setInformativeText(
-            f"<b>Part Code:</b> {part_code}<br>"
+            f"<b>Part Code:</b> {variant_part}<br>"
             f"<b>Total Printed:</b> {print_output_amount}<br>"
             f"<b>Total Rejected:</b> {sum(non_zero_defects.values())}<br>"
             f"<b>Date Printed:</b> {date_print}<br>"
@@ -901,7 +938,7 @@ class open_take_from_spray_entry(QWidget):
       defect_data = {}
       total_defects = 0
       checker = self.e2.text().upper()
-
+      variant_part = self.part_code_entry.currentText()
       try:
          # Start a transaction
          my_cursor.execute("START TRANSACTION;")
@@ -949,7 +986,7 @@ class open_take_from_spray_entry(QWidget):
 
                 print_batch_input = (
                     part_name,
-                    self.part_code,
+                    variant_part,
                     parent_id,
                     self.spray_id,
                     date_print,
@@ -974,7 +1011,7 @@ class open_take_from_spray_entry(QWidget):
             print_history_inputs = (
                 date_print,
                 part_name,
-                self.part_code,
+                variant_part,
                 print_output_amount,
                 total_defects if total_defects is not None else 0,
                 parent_id,
@@ -991,7 +1028,7 @@ class open_take_from_spray_entry(QWidget):
             print_history_inputs = (
                 date_print,
                 part_name,
-                self.part_code,
+                variant_part,
                 print_output_amount,
                 total_defects if total_defects is not None else 0,
                 parent_id,
@@ -1014,7 +1051,7 @@ class open_take_from_spray_entry(QWidget):
          spray_history_inputs = (
          date_print,
          part_name,
-         self.part_code,
+         variant_part,
          print_output_amount,
          total_defects,
          parent_id,
@@ -1069,8 +1106,7 @@ class first_phase_checking(QWidget):
         self.resize(1000, 500)
 
         vlayout = QVBoxLayout()
-        hlayout = QHBoxLayout()
-        grid = QGridLayout()
+
 
         self.calender = QCalendarWidget()
         vlayout.addWidget(self.calender)
@@ -1193,7 +1229,7 @@ class open_first_phase_checking_entry(QWidget):
          for i, detail in enumerate(self.reject_details):
                label = QLabel(detail.replace('_', ' ').capitalize())
                spin_box = QSpinBox()
-               spin_box.setRange(0, 100)  # Set range as needed
+               spin_box.setRange(0, 5000)  # Set range as needed
                self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
                grid.addWidget(label, i // 2, (i % 2) * 2)
@@ -1325,10 +1361,10 @@ class first_phase_checking_print(QWidget):
 
     part_selected = pyqtSignal(int, str)
 
-    def __init__(self, parent=None):
-        super(first_phase_checking_print, self).__init__(parent)
+    def __init__(self, parts_variant, parent=None):
+        super(first_phase_checking_print,  self).__init__(parent)
         self.resize(1000, 500)
-
+        variant_part = self.parts_variant 
         vlayout = QVBoxLayout()
 
         self.calender = QCalendarWidget()
@@ -1454,7 +1490,7 @@ class open_first_phase_checking_print_entry(QWidget):
          for i, detail in enumerate(self.reject_details):
             label = QLabel(detail.replace('_', ' ').capitalize())
             spin_box = QSpinBox()
-            spin_box.setRange(0, 100)  # Set range as needed
+            spin_box.setRange(0, 5000)  # Set range as needed
             self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
             grid.addWidget(label, i // 2, (i % 2) * 2)
@@ -1744,7 +1780,7 @@ class open_final_phase_checking_spray_entry(QWidget):
          for i, detail in enumerate(self.reject_details):
                label = QLabel(detail.replace('_', ' ').capitalize())
                spin_box = QSpinBox()
-               spin_box.setRange(0, 100)  # Set range as needed
+               spin_box.setRange(0, 5000)  # Set range as needed
                self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
                grid.addWidget(label, i // 2, (i % 2) * 2)
@@ -1993,7 +2029,7 @@ class open_final_phase_checking_entry(QWidget):
         for i, detail in enumerate(self.reject_details):
             label = QLabel(detail.replace('_', ' ').capitalize())
             spin_box = QSpinBox()
-            spin_box.setRange(0, 100)  # Set range as needed
+            spin_box.setRange(0, 5000)  # Set range as needed
             self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
             grid.addWidget(label, i // 2, (i % 2) * 2)
@@ -2871,7 +2907,7 @@ class open_rechecking_entry(QWidget):
          for i, detail in enumerate(self.reject_details):
                label = QLabel(detail.replace('_', ' ').capitalize())
                spin_box = QSpinBox()
-               spin_box.setRange(0, 100)  # Set range as needed
+               spin_box.setRange(0, 5000)  # Set range as needed
                self.spin_boxes[detail] = spin_box  # Store reference to each spin box
 
                grid.addWidget(label, i // 2, (i % 2) * 2)
