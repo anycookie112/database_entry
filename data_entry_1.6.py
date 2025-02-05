@@ -164,7 +164,7 @@ class main_menu(QWidget):
    def open_first_phase_print_checking_window(self):
         # Check if the spray_print window is already open; if not, create it
         if self.first_phase_print_window is None:
-            self.first_phase_print_window = first_phase_checking_print(self.parts_variant)
+            self.first_phase_print_window = first_phase_checking_print()
         
         # Show the spray_print window
         self.first_phase_print_window.show()
@@ -805,7 +805,7 @@ class open_take_from_spray_entry(QWidget):
         # parts = [parts_tuple(*part) for part in all_parts_info]
         # self.part_codes = [part.part_code for part in parts]  
 
-        my_cursor.execute("SELECT part_name, part_code FROM variant_parts")
+        my_cursor.execute("SELECT part_name, part_code FROM main_parts")
         all_parts_variant_info = my_cursor.fetchall()
         parts_tuple_variant = namedtuple("parts_info", ["part_name", "part_code"])
         # Create a list of named tuples for the parts
@@ -1361,10 +1361,9 @@ class first_phase_checking_print(QWidget):
 
     part_selected = pyqtSignal(int, str)
 
-    def __init__(self, parts_variant, parent=None):
+    def __init__(self, parent=None):
         super(first_phase_checking_print,  self).__init__(parent)
         self.resize(1000, 500)
-        variant_part = self.parts_variant 
         vlayout = QVBoxLayout()
 
         self.calender = QCalendarWidget()
