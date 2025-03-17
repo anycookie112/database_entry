@@ -965,19 +965,31 @@ class open_take_from_spray_entry(QWidget):
          
          # Check if `spray_batch_id` exists in `print_batch_info`
          my_cursor.execute(
-                "SELECT print_info_id FROM print_batch_info WHERE spray_batch_id = %s",
+                "SELECT print_info_id, part_code FROM print_batch_info WHERE spray_batch_id = %s",
                 (self.spray_id,)
             )
          result = my_cursor.fetchone()
 
 
 
+        #  if result:
+        #         # If batch exists, use the existing print_info_id
+        #         last_print_info_id = result[0]
+        #         print("Batch exists, using existing print_info_id:", last_print_info_id)
          if result:
-                # If batch exists, use the existing print_info_id
-                last_print_info_id = result[0]
-                print("Batch exists, using existing print_info_id:", last_print_info_id)
-         else:
-                # Insert into `print_batch_info` as the entry doesn't exist
+            last_print_info_id, existing_part_code = result  # Unpack values
+            print("Batch exists, checking part_code...")
+
+            my_cursor.fetchall()  # Clears any unread results
+
+            if existing_part_code == variant_part:
+                print("✅ Part code matches, using existing print_info_id:", last_print_info_id)
+            else:
+                print("⚠️ Part code mismatch, inserting a new row...")
+
+                # 🛠 Fix: Fetch any unread results to clear the cursor
+                my_cursor.fetchall()  # ✅ Ensures all rows are read before INSERT
+
                 sql_print_batch_info = """
                 INSERT INTO print_batch_info 
                 (part_name, part_code, parent_id, spray_batch_id, date_printed, batch_status)
@@ -993,13 +1005,33 @@ class open_take_from_spray_entry(QWidget):
                     "incomplete"
                 )
 
-                # Now execute the insertion
                 my_cursor.execute(sql_print_batch_info, print_batch_input)
+                last_print_info_id = my_cursor.lastrowid  # ✅ Get new print_info_id
 
-                # Retrieve the new print_info_id
-                my_cursor.execute("SELECT LAST_INSERT_ID();")
-                last_print_info_id = my_cursor.fetchone()[0]
-                print("Inserted new row into print_batch_info with print_info_id:", last_print_info_id)
+                print("✅ New print_info_id created:", last_print_info_id)
+
+         else:
+            print("🚀 No existing batch, inserting a new row...")
+
+            sql_print_batch_info = """
+            INSERT INTO print_batch_info 
+            (part_name, part_code, parent_id, spray_batch_id, date_printed, batch_status)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """
+
+            print_batch_input = (
+                part_name,
+                variant_part,
+                parent_id,
+                self.spray_id,
+                date_print,
+                "incomplete"
+            )
+
+            my_cursor.execute(sql_print_batch_info, print_batch_input)
+            last_print_info_id = my_cursor.lastrowid  # ✅ Get new print_info_id
+
+            print("✅ Inserted new row into print_batch_info with print_info_id:", last_print_info_id)
 
          if self.cb1.isChecked():
             # Insert into `history_print` table
@@ -1847,6 +1879,9 @@ class open_final_phase_checking_spray_entry(QWidget):
             )
 
             result = my_cursor.fetchone()
+
+
+
 
             # Collect defect data from spin boxes
             for defect, spin_box in self.spin_boxes.items():
