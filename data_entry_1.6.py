@@ -123,7 +123,7 @@ class main_menu(QWidget):
 
       self.b7 = QPushButton("Delete/Amend")
       self.b7.setCheckable(True)
-    #   self.b7.clicked.connect(self.open_new_part_window)
+      self.b7.clicked.connect(self.open_delete_window)
       layout.addWidget(self.b7)
 
       self.setLayout(layout)
@@ -136,6 +136,7 @@ class main_menu(QWidget):
       self.first_phase_print_window = None
       self.new_part_window = None
       self.amend = None
+      self.delete = None
    
    def open_new_part_window(self):
         # Check if the spray_print window is already open; if not, create it
@@ -200,6 +201,14 @@ class main_menu(QWidget):
         
         # Show the spray_print window
         self.amend.show()
+
+   def open_delete_window(self):
+        # Check if the spray_print window is already open; if not, create it
+        if self.delete is None:
+            self.delete = delete_record()
+        
+        # Show the spray_print window
+        self.delete.show()
         
 class amend(QWidget):
     def __init__(self, part_codes, parent = None):
@@ -3067,6 +3076,199 @@ class open_rechecking_entry(QWidget):
         except mysql.connector.Error as e:
             mydb.rollback()  # Roll back transaction in case of an error
             print(f"Error: {e}")
+
+class delete_record(QWidget):
+    def __init__(self,  parent=None):
+        super(delete_record, self).__init__(parent)
+
+        hlayout = QHBoxLayout()
+    
+        self.b1 = QPushButton("Spray")
+        self.b1.setChecked(True)
+        self.b1.clicked.connect(self.open_delete_record_spray)
+        hlayout.addWidget(self.b1)
+        
+        self.b2 = QPushButton("Print")
+        self.b2.setChecked(True)
+        self.b2.clicked.connect(self.open_delete_record_print)
+        hlayout.addWidget(self.b2)
+
+        self.setLayout(hlayout)
+        self.open_delete_record_spray_window = None
+        self.open_delete_record_print_window = None
+
+
+      
+    def open_delete_record_spray (self):
+          
+        if self.open_delete_record_spray_window is None:
+            self.open_delete_record_spray_window = delete_record()
+        
+        # Show the open_new_batch_print_window window
+        self.open_delete_record_spray_window.show()
+
+
+class delete_record(QWidget):
+    # Define the signal at the class level
+    part_selected = pyqtSignal(int, str)
+
+    def __init__(self, parent=None):
+        super(delete_record, self).__init__(parent)
+        self.open_entry_form_instance = None
+
+        # Main vertical layout
+        vlayout = QVBoxLayout()
+        
+        # Horizontal layout for radio buttons
+        hlayout = QHBoxLayout()
+
+        # Create radio buttons
+        self.r1 = QRadioButton("Spray")
+        self.r1.setChecked(True)
+        self.r2 = QRadioButton("Print")
+        self.r2.setChecked(False)
+
+        
+        # Add radio buttons to horizontal layout
+        hlayout.addWidget(self.r1)
+        hlayout.addWidget(self.r2)
+        
+        # Add the horizontal layout with radio buttons to the main layout
+        vlayout.addLayout(hlayout)
+
+        # Connect radio buttons to the toggle handler
+        self.r1.toggled.connect(self.on_radio_button_toggled)
+        self.r2.toggled.connect(self.on_radio_button_toggled)
+
+        # Calendar widget
+        self.calender = QCalendarWidget()
+        vlayout.addWidget(self.calender)
+        self.calender.clicked[QDate].connect(self.load_parts_for_date)
+
+        # List widget
+        self.listWidget = QListWidget()
+        vlayout.addWidget(self.listWidget)
+        self.listWidget.itemClicked.connect(self.on_item_clicked)
+
+        # Label for selected part
+        self.selected_part_label = QLabel("Selected Part Name:")
+        vlayout.addWidget(self.selected_part_label)
+
+        # Set main layout for the QWidget
+        self.setLayout(vlayout)
+
+        # Load initial parts for the selected date
+        self.load_parts_for_date(self.calender.selectedDate())
+        self.resize(1000, 500)
+
+    def on_radio_button_toggled(self):
+        # Refresh the list whenever the radio button selection changes
+        self.load_parts_for_date(self.calender.selectedDate())
+
+    def load_parts_for_date(self, selected_date):
+        # Clear the list widget to refresh with new data
+        self.listWidget.clear()
+
+        # Convert QDate to string in format 'YYYY-MM-DD'
+        date_str = selected_date.toString("yyyy-MM-dd")
+
+        # Determine the query based on the selected radio button
+        if self.r1.isChecked() == True:
+            # query = """
+            #     SELECT spray_batch_id, part_code, part_name, hundered_balance 
+            #     FROM spray_batch_info 
+            #     WHERE date_sprayed = %s
+            # """
+            query = """
+            SELECT spray_inspection_id, part_name, part_code, amount_inspect, amount_reject, movement_reason FROM history_spray
+            WHERE DATE(date_entered) = %s
+            """
+        else:
+            query = """
+            SELECT print_inspection_id, part_name, part_code, amount_inspect, amount_reject, movement_reason FROM history_print
+            WHERE DATE(date_entered) = %s
+            """
+        
+        # Example for executing the query (assuming my_cursor and database connection exist)
+        # Replace this with your actual database handling code
+        my_cursor.execute(query, (date_str,))
+        part_list = my_cursor.fetchall()
+        # print(part_list)
+
+        
+        # Populate list widget with parts information
+        if self.r1.isChecked():
+            for spray_inspection_id, part_name, part_code, amount_inspect, amount_reject, movement_reason in part_list:
+                part_info = f"Spray Inspection ID: {spray_inspection_id}, Part Name: {part_name}, Part Code: {part_code}, Amount Inspect: {amount_inspect}, Amount Reject: {amount_reject}, Movement Reason: {movement_reason}"
+                self.listWidget.addItem(part_info)
+        else:
+            for print_inspection_id, part_name, part_code, amount_inspect, amount_reject, movement_reason in part_list:
+                part_info = f"Print Inspection ID: {print_inspection_id}, Part Name: {part_name}, Part Code: {part_code}, Amount Inspect: {amount_inspect}, Amount Reject: {amount_reject}, Movement Reason: {movement_reason}"
+                self.listWidget.addItem(part_info)
+
+    def on_item_clicked(self, item):
+        # Parse the spray ID and part code from the selected item text
+        item_text = item.text()
+        id = int(item_text.split(",")[0].split(":")[1].strip())
+
+        # Emit the signal and open the entry form with parsed spray_id and part_code
+        # self.part_selected.emit(id)  # Emit the signal
+        print(id)
+        # Optionally, call open_entry_form
+        self.confirmation(item)
+    
+    def confirmation(self, item):
+        item_text = item.text()
+    
+        # Set up the confirmation message
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Confirm Delete Record?")
+        msg.setInformativeText(
+            item_text
+        )
+        msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+        # Capture the button clicked and proceed with submission only if OK is clicked
+        if msg.exec_() == QMessageBox.Ok:
+            self.delete_entry(item)
+        
+
+    def delete_entry(self, item):
+        item_text = item.text()
+        id = item_text.split(",")[0].split(":")[1].strip()
+        if self.r1.isChecked():  
+            query_defect_list = """
+            DELETE FROM spray_defect_list WHERE spray_inspection_id = %s;
+            """
+            my_cursor.execute(query_defect_list, (id,))
+        
+            query_history = """
+            DELETE FROM history_spray WHERE spray_inspection_id = %s;
+            """
+            my_cursor.execute(query_history, (id,))
+
+            mydb.commit()
+            print("Data Inserted")
+
+        else:
+            query_defect_list = """
+            DELETE FROM print_defect_list WHERE print_inspection_id = %s;
+            """
+            my_cursor.execute(query_defect_list, (id,))
+   
+            query_history = """
+            DELETE FROM history_print WHERE print_inspection_id = %s;
+            """
+            my_cursor.execute(query_history, (id,))
+
+            mydb.commit()
+            print("Data Deleted")
+
+    # def reset_radio_buttons(self):
+    #     self.r1.setChecked(True)  # Set the first radio button as checked
+    #     self.r2.setChecked(False)  # Set the first radio button as checked
+
 
 
 def main():
