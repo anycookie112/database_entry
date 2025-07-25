@@ -5,19 +5,19 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from collections import namedtuple
 
-mydb = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="UL1131",
-    database="production"
-)
-
 # mydb = mysql.connector.connect(
-#     host="192.168.1.17",
-#     user="admin",
+#     host="localhost",
+#     user="root",
 #     password="UL1131",
 #     database="production"
 # )
+
+mydb = mysql.connector.connect(
+    host="192.168.1.17",
+    user="admin",
+    password="UL1131",
+    database="production"
+)
 
 my_cursor = mydb.cursor()
 
@@ -2728,8 +2728,8 @@ class open_final_phase_checking_entry(QWidget):
             assemble_output_amount,
             total_defects if total_defects is not None else 0,
             parent_id,
-            "200",
             self.assemble_id,
+            "200",
             checker
             )
             my_cursor.execute(sql_assemble_history, assemble_history_inputs)
@@ -5002,7 +5002,7 @@ class qc_print_input_window(QWidget):
                     total_defects if total_defects is not None else 0,
                     parent_id,
                     self.assemble_id,  # Using the fetched `print_info_id`
-                    "on hold",
+                    "onhold",
                     checker
                 )
                 my_cursor.execute(sql_assemble_history, assemble_history_inputs)
